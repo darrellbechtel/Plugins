@@ -1,0 +1,12 @@
+# Blackboard state (generated at runtime, project-specific)
+blackboard.json
+blackboard.tmp
+blackboard_history/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db

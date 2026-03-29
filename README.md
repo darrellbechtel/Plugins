@@ -1,0 +1,141 @@
+# multiagent-team
+
+A Claude Code plugin that deploys a research-informed multi-agent engineering
+team into any project. Built on Wooldridge's BDI model, updated with empirical
+findings from NeurIPS 2025 and sparse communication research.
+
+## Agents
+
+| Agent | Role | When Active |
+|-------|------|-------------|
+| **Architect** | Design — produces structured blueprints before implementation | Tier 2+ |
+| **Mason** | Implementation — writes, refactors, and fixes code against Architect's spec | All tiers |
+| **Breaker** | Verification — writes and runs tests, reports structured results | Tier 2+ |
+| **Shipp** | Quality gate — lint, format, build checks | Tier 2+ |
+| **Sentinel** | Security audit — absolute veto power | Tier 3 |
+| **Wiki** | Documentation — READMEs, docstrings, ADRs | Tier 3 |
+
+## Install
+
+```bash
+# From GitHub (once published)
+/plugin install multiagent-team@<your-marketplace>
+
+# From local directory (for development)
+claude --plugin-dir /path/to/multiagent-team
+```
+
+## Setup
+
+After installing, copy the Blackboard CLI into your project:
+
+```bash
+mkdir -p .claude/tools
+cp "$(find ~/.claude -path '*/multiagent-team/skills/orchestrate/bb.py' | head -1)" .claude/tools/bb.py
+```
+
+## Usage
+
+### Slash Command
+
+```
+/multiagent-team:pipeline Add user authentication with bcrypt and JWT
+```
+
+This classifies the task, confirms the tier and budget with you, initializes
+the Blackboard, and begins dispatching agents.
+
+### Manual
+
+```bash
+# Initialize pipeline
+python .claude/tools/bb.py init "Add auth endpoint" --tier 3 --budget 60
+
+# Then use @mason, @breaker, @shipp, @sentinel, @wiki in your Claude Code session
+```
+
+### Budget Management
+
+```bash
+# Check time remaining
+python .claude/tools/bb.py budget
+
+# Adjust limits
+python .claude/tools/bb.py budget set-agent mason 45
+python .claude/tools/bb.py budget set-pipeline 120
+
+# View agent activity
+python .claude/tools/bb.py show decisions_log
+```
+
+## Architecture
+
+### Blackboard Pattern
+
+Agents communicate through structured JSON (`.claude/blackboard.json`),
+never by reading each other's prose output. Each agent has write permissions
+only to its designated section.
+
+### Complexity Tiers
+
+| Tier | Agents | Default Budget | Triggers |
+|------|--------|---------------|----------|
+| 1 — Trivial | Mason | 15m | Single file, <50 LOC |
+| 2 — Standard | Architect → Mason → Breaker → Shipp | 45m | Multi-file, new logic |
+| 3 — Complex | All 6 | 90m | Security, auth, API, migrations |
+
+### Key Research Findings Applied
+
+- **Debate Martingale (NeurIPS 2025):** Agents don't debate. Breaker reports
+  structured test failures. Mason receives targets, not opinions.
+- **Sparse Communication:** Agents receive only the Blackboard sections they
+  need. No agent reads another agent's full output.
+- **Majority Voting > Debate:** After 2 failed fixes, the orchestrator requests
+  3 independent implementations and picks the best by test pass rate.
+- **Wooldridge 2025 Critique:** The Blackboard provides a structured environment
+  layer beyond natural language message-passing.
+
+### Time Budget Enforcement
+
+Every agent checks in via `bb.py checkin` at startup and periodically during
+work. The CLI returns `CONTINUE` or `STOP` (exit code 2) based on:
+
+- Pipeline-level deadline
+- Per-agent time limits
+- Per-agent tool call limits
+
+## File Structure
+
+```
+multiagent-team/
+├── .claude-plugin/
+│   └── plugin.json          # Plugin manifest
+├── agents/
+│   ├── architect.md         # Design agent
+│   ├── mason.md             # Implementation agent
+│   ├── breaker.md           # Verification agent
+│   ├── shipp.md             # Quality gate agent
+│   ├── sentinel.md          # Security audit agent
+│   └── wiki.md              # Documentation agent
+├── skills/
+│   └── orchestrate/
+│       ├── SKILL.md          # Orchestration rules & protocol
+│       └── bb.py             # Blackboard CLI tool
+├── commands/
+│   └── pipeline.md          # /pipeline slash command
+├── hooks/
+│   └── hooks.json           # SubagentStop budget enforcement
+└── README.md
+```
+
+## Development
+
+Test locally:
+
+```bash
+claude --plugin-dir /path/to/multiagent-team
+```
+
+## License
+
+MIT

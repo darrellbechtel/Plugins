@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.agent_id // \"unknown\"' | { read agent_id; python3 .claude/tools/bb.py log agent subagent_completed \"id=$agent_id\" 2>/dev/null; } || true"
+          }
+        ]
+      }
+    ]
+  }
+}
