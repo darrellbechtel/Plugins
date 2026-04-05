@@ -88,5 +88,46 @@ schema, breaking, api
 
 1. Sentinel block → absolute veto, Mason applies fix constraint
 2. Breaker failure → send ONLY test targets to Mason (no opinions)
-3. After 2 failed fixes → 3 independent implementations, pick best (majority voting)
+3. After 2 failed fixes → 3 independent implementations via `team.sh spawn-parallel` (majority voting)
 4. Sentinel blocks 3+ → escalate to human
+
+## Parallel Execution (Team Runtime)
+
+The team runtime (`team.sh`) spawns real terminal panes for true parallel
+execution. It auto-detects tmux or cmux.
+
+```bash
+# Check available surface
+bash .claude/tools/team.sh surface
+
+# Majority voting: 3 independent Mason implementations
+bash .claude/tools/team.sh spawn-parallel 3 'claude code --message "implement auth"'
+
+# Monitor and wait
+bash .claude/tools/team.sh status
+bash .claude/tools/team.sh wait
+```
+
+Use parallel execution when:
+- Majority voting is triggered (2+ failed fix attempts)
+- Tier 3 task decomposes into independent subtasks
+- Cross-validation across different approaches
+
+Do NOT use parallel execution when:
+- Tasks are dependent (Architect must finish before Mason starts)
+- Simple Tier 1 tasks (overhead not worth it)
+
+## Persistence Loop
+
+The loop runs a task repeatedly until `bb.py verify` confirms success:
+
+```bash
+bash .claude/tools/team.sh loop 'claude code --message "fix tests"' --max-iter 5
+```
+
+The loop: run command → snapshot files → verify → if DISCONFIRM, retry.
+Stops on CONFIRM, no blocking failures, or max iterations.
+
+Use this for tasks that need iterative refinement without human intervention.
+The time budget (`bb.py budget`) still applies — the loop respects pipeline
+deadlines.

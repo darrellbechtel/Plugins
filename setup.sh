@@ -31,6 +31,13 @@ else
     exit 1
 fi
 
+# 2b. Copy team.sh (parallel execution runtime)
+if [ -f "$PLUGIN_DIR/skills/orchestrate/team.sh" ]; then
+    cp "$PLUGIN_DIR/skills/orchestrate/team.sh" "$PROJECT_DIR/.claude/tools/team.sh"
+    chmod +x "$PROJECT_DIR/.claude/tools/team.sh"
+    echo "✓ Team runtime → .claude/tools/team.sh"
+fi
+
 # 3. Verify bb.py works
 if python3 "$PROJECT_DIR/.claude/tools/bb.py" --help > /dev/null 2>&1; then
     echo "✓ bb.py verified (Python 3)"
@@ -102,16 +109,18 @@ if [ -f "$PROJECT_DIR/.gitignore" ]; then
         echo ".claude/blackboard.json" >> "$PROJECT_DIR/.gitignore"
         echo ".claude/blackboard.tmp" >> "$PROJECT_DIR/.gitignore"
         echo ".claude/blackboard_history/" >> "$PROJECT_DIR/.gitignore"
-        echo "✓ Added blackboard files to .gitignore"
+        echo ".claude/team/" >> "$PROJECT_DIR/.gitignore"
+        echo "✓ Added blackboard + team files to .gitignore"
     else
         echo "✓ .gitignore already excludes blackboard"
     fi
 else
     cat > "$PROJECT_DIR/.gitignore" << 'GI_EOF'
-# Multi-agent blackboard (runtime state)
+# Multi-agent runtime state
 .claude/blackboard.json
 .claude/blackboard.tmp
 .claude/blackboard_history/
+.claude/team/
 GI_EOF
     echo "✓ Created .gitignore with blackboard exclusions"
 fi

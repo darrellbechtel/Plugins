@@ -1,10 +1,10 @@
 {
   "name": "multiagent-team",
   "description": "Research-informed multi-agent engineering team with Blackboard coordination, BDI-based orchestration, and time-budgeted autonomous execution. Agents: Architect (design), Mason (build), Breaker (verify), Shipp (quality), Sentinel (security), Wiki (docs).",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": {
     "name": "Darrell"
   },
-  "homepage": "https://github.com/darrell/multiagent-team",
+  "homepage": "https://github.com/darrellbechtel/Plugins",
   "license": "MIT"
 }

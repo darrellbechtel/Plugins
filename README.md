@@ -104,6 +104,34 @@ work. The CLI returns `CONTINUE` or `STOP` (exit code 2) based on:
 - Per-agent time limits
 - Per-agent tool call limits
 
+### Parallel Execution (Team Runtime)
+
+The team runtime (`team.sh`) spawns real terminal panes for true parallel
+execution. It auto-detects tmux or cmux — no configuration needed.
+
+```bash
+# Majority voting: 3 independent implementations in parallel
+bash .claude/tools/team.sh spawn-parallel 3 'claude code --message "implement auth"'
+
+# Monitor workers
+bash .claude/tools/team.sh status
+bash .claude/tools/team.sh wait
+
+# Read output from a specific worker
+bash .claude/tools/team.sh read worker-1
+```
+
+### Persistence Loop
+
+Run a task repeatedly until filesystem verification passes:
+
+```bash
+bash .claude/tools/team.sh loop 'claude code --message "fix tests"' --max-iter 5
+```
+
+The loop runs the command, takes a file snapshot, runs `bb.py verify`,
+and retries if verification returns DISCONFIRM.
+
 ## File Structure
 
 ```
@@ -120,12 +148,18 @@ multiagent-team/
 ├── skills/
 │   └── orchestrate/
 │       ├── SKILL.md          # Orchestration rules & protocol
-│       └── bb.py             # Blackboard CLI tool
+│       ├── bb.py             # Blackboard CLI v2 (structured protocol + verification)
+│       └── team.sh           # Parallel execution runtime (tmux/cmux)
 ├── commands/
-│   └── pipeline.md          # /pipeline slash command
+│   ├── pipeline.md          # /pipeline slash command
+│   └── team.md              # /team slash command
 ├── hooks/
-│   └── hooks.json           # SubagentStop budget enforcement
-└── README.md
+│   └── hooks.json           # SubagentStop logger
+├── setup.sh                 # One-command project setup
+├── ARCHITECTURE.md          # Research reference
+├── README.md                # Full docs
+├── LICENSE                  # MIT
+└── .gitignore
 ```
 
 ## Development
