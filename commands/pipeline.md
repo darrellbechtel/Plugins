@@ -5,7 +5,7 @@ Set up the multi-agent pipeline for the task the user describes.
 1. **Ensure bb.py is available.** If `.claude/tools/bb.py` does not exist in the project, copy it from the plugin:
    ```bash
    mkdir -p .claude/tools
-   cp "$(find ~/.claude -path '*/multiagent-team/skills/orchestrate/bb.py' 2>/dev/null | head -1)" .claude/tools/bb.py 2>/dev/null
+   cp "$(find ~/.claude -path '*/orca/skills/orchestrate/bb.py' 2>/dev/null | head -1)" .claude/tools/bb.py 2>/dev/null
    ```
    If that doesn't work, tell the user to run: `cp <plugin-path>/skills/orchestrate/bb.py .claude/tools/bb.py`
 

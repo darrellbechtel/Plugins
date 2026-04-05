@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# multiagent-team setup
+# orca setup
 # =====================
 # Run this in any project to deploy the multi-agent engineering team.
 #
@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="${1:-$SCRIPT_DIR}"
 PROJECT_DIR="$(pwd)"
 
-echo "=== multiagent-team setup ==="
+echo "=== Orca setup ==="
 echo "Plugin:  $PLUGIN_DIR"
 echo "Project: $PROJECT_DIR"
 echo ""
@@ -56,8 +56,8 @@ if [ -f "$PROJECT_DIR/CLAUDE.md" ]; then
     echo "Quick snippet to append to your CLAUDE.md:"
     echo ""
     echo '  ## Multi-Agent Team'
-    echo '  This project uses the multiagent-team plugin.'
-    echo '  See /multiagent-team:pipeline to start a pipeline.'
+    echo '  This project uses the Orca plugin.'
+    echo '  See /orca:pipeline to start a pipeline.'
     echo '  Agents: @mason @breaker @shipp @sentinel @wiki'
     echo '  Blackboard: python .claude/tools/bb.py help'
     echo ""
@@ -67,13 +67,13 @@ else
 
 ## Multi-Agent Team
 
-This project uses the multiagent-team plugin for orchestrated development.
+This project uses the orca plugin for orchestrated development.
 
 ### Quick Start
 
 Start a pipeline:
 ```
-/multiagent-team:pipeline <task description>
+/orca:pipeline <task description>
 ```
 
 Or manually:
@@ -91,7 +91,7 @@ python .claude/tools/bb.py init "task description" --tier 2 --budget 45
 
 ### Orchestration Rules
 
-See the multiagent-team plugin's orchestrate skill for full rules:
+See the orca plugin's orchestrate skill for full rules:
 - Agents communicate through `.claude/blackboard.json`, never prose
 - Classify tasks before dispatching (Tier 1/2/3)
 - Breaker reports facts, not opinions (targeted interventions)
@@ -130,7 +130,7 @@ echo "=== Setup complete ==="
 echo ""
 echo "Next steps:"
 echo "  1. Install the plugin:  claude --plugin-dir $PLUGIN_DIR"
-echo "  2. Start a pipeline:    /multiagent-team:pipeline <your task>"
+echo "  2. Start a pipeline:    /orca:pipeline <your task>"
 echo "  3. Or manually:         python .claude/tools/bb.py init 'task' --tier 2"
 echo ""
 echo "Useful commands:"

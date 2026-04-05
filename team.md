@@ -13,7 +13,7 @@ execution. Use this when tasks are independent and can run simultaneously.
 
 Ensure `team.sh` is available in your project:
 ```bash
-cp "$(find ~/.claude -path '*/multiagent-team/skills/orchestrate/team.sh' 2>/dev/null | head -1)" .claude/tools/team.sh 2>/dev/null
+cp "$(find ~/.claude -path '*/orca/skills/orchestrate/team.sh' 2>/dev/null | head -1)" .claude/tools/team.sh 2>/dev/null
 chmod +x .claude/tools/team.sh
 ```
 
