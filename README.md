@@ -1,7 +1,7 @@
-# multiagent-team
+# Orca
 
 A Claude Code plugin that deploys a research-informed multi-agent engineering
-team into any project. Built on Wooldridge's BDI model, updated with empirical
+pod into any project. Built on Wooldridge's BDI model, updated with empirical
 findings from NeurIPS 2025 and sparse communication research.
 
 ## Agents
@@ -19,10 +19,10 @@ findings from NeurIPS 2025 and sparse communication research.
 
 ```bash
 # From GitHub (once published)
-/plugin install multiagent-team@<your-marketplace>
+/plugin install orca@<your-marketplace>
 
 # From local directory (for development)
-claude --plugin-dir /path/to/multiagent-team
+claude --plugin-dir /path/to/orca
 ```
 
 ## Setup
@@ -31,7 +31,7 @@ After installing, copy the Blackboard CLI into your project:
 
 ```bash
 mkdir -p .claude/tools
-cp "$(find ~/.claude -path '*/multiagent-team/skills/orchestrate/bb.py' | head -1)" .claude/tools/bb.py
+cp "$(find ~/.claude -path '*/orca/skills/orchestrate/bb.py' | head -1)" .claude/tools/bb.py
 ```
 
 ## Usage
@@ -39,7 +39,7 @@ cp "$(find ~/.claude -path '*/multiagent-team/skills/orchestrate/bb.py' | head -
 ### Slash Command
 
 ```
-/multiagent-team:pipeline Add user authentication with bcrypt and JWT
+/orca:pipeline Add user authentication with bcrypt and JWT
 ```
 
 This classifies the task, confirms the tier and budget with you, initializes
@@ -135,7 +135,7 @@ and retries if verification returns DISCONFIRM.
 ## File Structure
 
 ```
-multiagent-team/
+orca/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin manifest
 ├── agents/
@@ -167,7 +167,7 @@ multiagent-team/
 Test locally:
 
 ```bash
-claude --plugin-dir /path/to/multiagent-team
+claude --plugin-dir /path/to/orca
 ```
 
 ## License

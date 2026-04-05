@@ -18,12 +18,12 @@ The Blackboard is at `.claude/blackboard.json`. All agents interact through
 the `bb.py` CLI tool. The tool is bundled with this plugin at:
 
 ```bash
-python "$(dirname "$(claude plugins path multiagent-team)")/skills/orchestrate/bb.py"
+python "$(dirname "$(claude plugins path orca)")/skills/orchestrate/bb.py"
 ```
 
 Or copy it into your project for easier access:
 ```bash
-cp "$(dirname "$(claude plugins path multiagent-team)")/skills/orchestrate/bb.py" .claude/tools/bb.py
+cp "$(dirname "$(claude plugins path orca)")/skills/orchestrate/bb.py" .claude/tools/bb.py
 ```
 
 ### Quick Reference

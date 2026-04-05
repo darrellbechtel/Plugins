@@ -1,4 +1,4 @@
-# Multi-Agent Engineering Team — Research-Informed Architecture
+# Orca — Research-Informed Multi-Agent Architecture
 
 ## Design Philosophy
 

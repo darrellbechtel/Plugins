@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# team.sh — Parallel Execution Runtime for multiagent-team
+# team.sh — Parallel Execution Runtime for Orca
 # =========================================================
 #
 # Multiplexer-agnostic worker management. Detects tmux, cmux, or plain
@@ -163,7 +163,7 @@ list_workers() {
 
 tmux_spawn() {
     local name="$1" cmd="$2"
-    local session_name="mat-${name}"  # multiagent-team prefix
+    local session_name="orca-${name}"
 
     if [ "$SURFACE" = "tmux" ]; then
         # Inside tmux: split pane
