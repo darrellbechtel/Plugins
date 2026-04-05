@@ -19,7 +19,7 @@ Performatives (Speech Acts):
   DISCONFIRM  Verification finds agent claim does not match reality
 """
 
-import hashlib, json, os, subprocess, sys, time
+import hashlib, json, os, subprocess, sys, time, urllib.request
 from pathlib import Path
 
 PERFORMATIVES = {
@@ -50,6 +50,85 @@ WRITE_PERMISSIONS = {
     "quality_gate": {"shipp"}, "security_gate": {"sentinel"},
     "pipeline_status": {"orchestrator"}, "verification": {"system"},
 }
+
+# ---- Event Emitter ----
+
+def events_path():
+    current = Path.cwd()
+    while current != current.parent:
+        if (current / ".claude").is_dir():
+            return current / ".claude" / "events.jsonl"
+        current = current.parent
+    return Path.cwd() / ".claude" / "events.jsonl"
+
+def emit(event_type, data=None):
+    """Append event to local log and forward to any configured webhook sinks."""
+    event = {"ts": time.time(), "type": event_type, **(data or {})}
+    line = json.dumps(event, default=str)
+    try:
+        p = events_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with open(p, "a") as f:
+            f.write(line + "\n")
+    except Exception:
+        pass
+    # Forward to any MULTIAGENT_WEBHOOK_* sinks (Slack, custom dashboard, etc.)
+    for key, url in os.environ.items():
+        if not key.startswith("MULTIAGENT_WEBHOOK_"):
+            continue
+        try:
+            payload = json.dumps({"text": f"*[{event_type}]* {_format_event(event_type, data or {})}"}).encode()
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            subprocess.Popen(
+                [sys.executable, "-c",
+                 f"import urllib.request; urllib.request.urlopen(urllib.request.Request('{url}', "
+                 f"data={payload!r}, headers={{'Content-Type':'application/json'}}), timeout=5)"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+        except Exception:
+            pass
+
+def _format_event(event_type, data):
+    """Human-readable one-liner for webhook messages."""
+    t = event_type.split(".")[-1]
+    if "agent" in data:
+        prefix = f"`{data['agent']}`"
+    elif "tier" in data:
+        prefix = f"Tier {data['tier']}"
+    else:
+        prefix = ""
+    reason = data.get("reason") or data.get("task") or data.get("message") or ""
+    parts = [p for p in [prefix, t, reason[:120]] if p]
+    return " — ".join(parts) if parts else event_type
+
+def cmd_events(args):
+    """View the event log with optional filtering."""
+    p = events_path()
+    if not p.exists():
+        print("No events recorded yet."); return
+    lines = p.read_text().strip().split("\n")
+    filter_type = None
+    tail_n = 20
+    for i, a in enumerate(args):
+        if a == "--type" and i + 1 < len(args): filter_type = args[i + 1]
+        elif a == "--tail" and i + 1 < len(args): tail_n = int(args[i + 1])
+        elif a == "--all": tail_n = len(lines)
+    events = []
+    for line in lines:
+        try:
+            e = json.loads(line)
+            if filter_type and filter_type not in e.get("type", ""):
+                continue
+            events.append(e)
+        except json.JSONDecodeError:
+            continue
+    for e in events[-tail_n:]:
+        ts = time.strftime("%H:%M:%S", time.localtime(e.get("ts", 0)))
+        etype = e.get("type", "?")
+        extra = {k: v for k, v in e.items() if k not in ("ts", "type")}
+        detail = ", ".join(f"{k}={v}" for k, v in extra.items()) if extra else ""
+        print(f"  [{ts}] {etype:30s} {detail}")
+    print(f"\n{len(events)} event(s)" + (f" (showing last {tail_n})" if tail_n < len(events) else ""))
 
 def find_blackboard():
     current = Path.cwd()
@@ -162,6 +241,8 @@ def cmd_init(args):
     except (subprocess.TimeoutExpired, FileNotFoundError):
         state["file_snapshots"] = {}
     save(path, state)
+    emit("pipeline.started", {"tier": tier, "tier_name": tier_names.get(tier),
+         "agents": tier_agents.get(tier, []), "budget_m": budget_minutes, "task": description[:120]})
     print(f"Pipeline: {tier_names.get(tier)} (Tier {tier}) | Agents: {', '.join(tier_agents.get(tier, []))} | Budget: {budget_minutes}m")
     print(f"Task: {description[:80]}")
 
@@ -182,6 +263,8 @@ def cmd_msg(args):
         current.update(content); state[section] = current
     else: state[section] = content
     save(path, state)
+    if perf == "PROHIBIT":
+        emit("agent.blocked", {"agent": sender, "reason": json.dumps(content)[:200]})
     print(f"[{performative}] {sender} -> {receiver} : {section}")
 
 def cmd_verify(args):
@@ -261,6 +344,9 @@ def cmd_verify(args):
     state.setdefault("messages", []).append(
         create_message(perf, "system", "orchestrator", "verification", verification))
     save(path, state)
+    emit(f"pipeline.{'verified' if perf == 'CONFIRM' else 'verification_failed'}",
+         {"result": perf, "issues": sum(1 for v in verification.values()
+          if isinstance(v, dict) and v.get("status") in ("DISCONFIRM","UNCHANGED","MISSING","DISCONFIRMED"))})
     print(f"\n[{perf}] Verification results written to Blackboard.")
 
 def cmd_snapshot(args):
@@ -345,6 +431,8 @@ def cmd_update(args):
     if isinstance(current, dict) and isinstance(data, dict): current.update(data); state[section] = current
     else: state[section] = data
     save(path, state)
+    if perf == "PROHIBIT":
+        emit("agent.blocked", {"agent": sender, "section": section, "reason": json.dumps(data)[:200]})
     print(f"[{perf}] {sender} -> orchestrator : {section}")
 
 def cmd_log(args):
@@ -361,7 +449,7 @@ def cmd_reset(args):
     if path.exists():
         archive_dir = path.parent / "blackboard_history"; archive_dir.mkdir(exist_ok=True)
         path.rename(archive_dir / f"blackboard_{int(time.time())}.json"); print("Archived.")
-    save(path, default_state()); print("Blackboard reset.")
+    save(path, default_state()); emit("pipeline.reset", {}); print("Blackboard reset.")
 
 def cmd_failures(args):
     state = load(find_blackboard())
@@ -383,7 +471,9 @@ def cmd_fix_attempt(args):
     attempts[args[0]] = attempts.get(args[0], 0) + 1
     count = attempts[args[0]]
     save(path, state)
-    if count >= 3: print(f"FIX ATTEMPT {count} for {args[0]} — THRESHOLD EXCEEDED\n-> MAJORITY VOTING")
+    if count >= 3:
+        emit("pipeline.majority_voting", {"module": args[0], "attempts": count})
+        print(f"FIX ATTEMPT {count} for {args[0]} — THRESHOLD EXCEEDED\n-> MAJORITY VOTING")
     elif count == 2: print(f"FIX ATTEMPT {count} for {args[0]} — WARNING: next triggers majority voting")
     else: print(f"FIX ATTEMPT {count} for {args[0]}")
 
@@ -399,12 +489,14 @@ def cmd_checkin(args):
     deadline = budget.get("pipeline_deadline")
     if deadline and now > deadline:
         state["pipeline_status"] = "timeout"; save(path, state)
+        emit("pipeline.timeout", {"agent": agent})
         print(f"STOP — Pipeline deadline exceeded"); sys.exit(2)
     agent_max = budget.get("agent_limits", {}).get(agent)
     if agent_max:
         ac = [c for c in checkins if c["agent"] == agent]
         if len(ac) > 1 and (now - ac[0]["timestamp"]) / 60 > agent_max:
             save(path, state)
+            emit("agent.timeout", {"agent": agent, "limit_m": agent_max})
             print(f"STOP — {agent} exceeded {agent_max}m limit"); sys.exit(2)
     save(path, state)
     rem_p = max(0, (deadline - now) / 60) if deadline else None
@@ -415,7 +507,9 @@ def cmd_checkin(args):
     candidates = [r for r in [rem_p, rem_a] if r is not None]
     rem = min(candidates) if candidates else None
     if rem is not None:
-        if rem < 5: print(f"CONTINUE — ⚠ {rem:.0f}m remaining")
+        if rem < 5:
+            emit("budget.warning", {"agent": agent, "remaining_m": round(rem)})
+            print(f"CONTINUE — ⚠ {rem:.0f}m remaining")
         else: print(f"CONTINUE — {rem:.0f}m remaining")
     else: print("CONTINUE")
 
@@ -459,7 +553,7 @@ def cmd_budget(args):
 COMMANDS = {"init": cmd_init, "show": cmd_show, "msg": cmd_msg, "update": cmd_update,
             "verify": cmd_verify, "snapshot": cmd_snapshot, "log": cmd_log, "reset": cmd_reset,
             "failures": cmd_failures, "fix-attempt": cmd_fix_attempt, "checkin": cmd_checkin,
-            "budget": cmd_budget}
+            "budget": cmd_budget, "events": cmd_events}
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
@@ -469,6 +563,7 @@ def main():
         print("Verify:      verify | snapshot [files|--git]")
         print("Pipeline:    init | show [section] | update | log | reset")
         print("Budget:      checkin | budget | failures | fix-attempt")
+        print("Events:      events [--type <filter>] [--tail N] [--all]")
         sys.exit(0)
     cmd = sys.argv[1]
     if cmd not in COMMANDS: print(f"Unknown: {cmd}. Available: {', '.join(COMMANDS.keys())}"); sys.exit(1)

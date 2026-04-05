@@ -1,7 +1,9 @@
-# Blackboard state (generated at runtime, project-specific)
+# Runtime state (generated at runtime, project-specific)
 blackboard.json
 blackboard.tmp
 blackboard_history/
+events.jsonl
+team/
 
 # Python
 __pycache__/
